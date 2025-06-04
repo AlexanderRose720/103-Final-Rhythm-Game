@@ -10,6 +10,7 @@ AsyncDelay Library: [Link](https://github.com/stevemarple/AsyncDelay)<br>
 LEDs will move down the left and right side, you must press the corresponding button as it gets to the bottom. Additionally the board will
 count down from three and you must shake the board on zero. Your score will be tallied up and displayed as a percentage at the end.
 <br>
+<br>
 **Additional Features:** <br>
 In the main menu, the right button will take you to the settings menu where you can change the game color (left button) and the game <br>
 volume (right button).<br>
