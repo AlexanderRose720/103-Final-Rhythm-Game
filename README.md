@@ -24,4 +24,9 @@ Accelerometer which read -8 to 8 g's. in the code it just reads as true over a c
 **Outputs:** <br>
 LEDs <br>
 Speaker <br>
+<br>
+**Uses Code From:** <br>
+Shake Detection Code: [Here](https://learn.adafruit.com/circuit-playground-d6-dice/shake-detect) <br>
+& <br>
+CPX speech demo US-Male <br>
 
