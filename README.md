@@ -7,8 +7,8 @@ CPX Board and Library from Adafruit: [Link](https://github.com/adafruit/Adafruit
 AsyncDelay Library: [Link](https://github.com/stevemarple/AsyncDelay)<br>
 <br>
 **Rules:** <br>
-LEDs will move down the left and right side, you must press the corresponding button as it gets to the bottom. Additionally the board will<br>
-count down from three and you must shake the board on zero. Your score will be tallied up and displayed a a percentage at the end.<br>
+LEDs will move down the left and right side, you must press the corresponding button as it gets to the bottom. Additionally the board will
+count down from three and you must shake the board on zero. Your score will be tallied up and displayed as a percentage at the end.
 <br>
 **Additional Features:** <br>
 In the main menu, the right button will take you to the settings menu where you can change the game color (left button) and the game <br>
