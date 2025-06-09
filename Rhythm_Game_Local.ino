@@ -5,6 +5,9 @@
 
 int gameState = 0;
 
+String seed = "";
+bool userSeed = false;
+
 bool switchState;
 
 int gameDifficulty = 1;
@@ -90,7 +93,7 @@ volatile long LBbounceTime = 0;
 const int RBbounceDuration = 150; // length in Millis to account for hardware bounce
 volatile long RBbounceTime = 0;
 
-int gameSeed[30] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int gameSeed[30];
 
 void Switch() {
   if (abs(millis() - switchbounceTime) > switchbounceDuration) { //checks that it has been 150 milliseconds since last interrupt to prevent hardware bounce
@@ -187,6 +190,35 @@ void mainMenu() {
     CircuitPlayground.clearPixels();
     RBFlag = false;
   }
+
+  // check if serial has available input
+  if (Serial.available() > 0) {
+    //Serial.print(Serial.readString());
+     seed =  Serial.readString();// read user input
+     userSeed = true;
+     // store input seed to game seed (seed must be 30 digits or less)
+     if(seed.length() <= 31) {
+     for(int i = 0; i < (seed.length()-1); i++) {
+        gameSeed[i] = (seed[i]-'0');
+     }
+     // print seed for user feedback
+     for(int i = 0; i < (seed.length()-1); i++) {
+      Serial.print(gameSeed[i]);
+     }
+     Serial.println();
+     }
+     else {
+      Serial.println("Too Long!");
+     }
+  }
+
+  // light up top leds blue if seed has been inputted
+  if(userSeed == true) {
+    CircuitPlayground.setPixelColor(0, 0, 0, 255);
+    CircuitPlayground.setPixelColor(9, 0, 0, 255);
+  }
+
+
   // if switch is flipped iterate through game difficulty
   if(switchFlag != switchState) {
       gameDifficulty += 1;
@@ -311,11 +343,13 @@ void settings() {
 
 void initialization() {
   //generate a random seed of 30 digits
-  for(int i = 0; i < 30; i++) {
-    gameSeed[i] = random(1, 10);
-    Serial.print(gameSeed[i]);
+  if(!userSeed) {
+    for(int i = 0; i < 30; i++) {
+      gameSeed[i] = random(1, 10);
+      //Serial.print(gameSeed[i]);
+    }
+    //Serial.println();
   }
-  Serial.println();
 
   // use difficulty to set BPM of the game, setting it to 100, 128, or 150
   switch(gameDifficulty) {
@@ -402,24 +436,20 @@ void game() {
       makeSound(440, 250);
     }
     // send every third digit to left side function
-    if(leftSeedNum <= 28) {
+    if(leftSeedNum <= (sizeof(gameSeed)/sizeof(int))-2) {
       leftSide(gameSeed[leftSeedNum]);
     }
     // send every third digit plus one to right side function
-    if(rightSeedNum <= 29) {
+    if(rightSeedNum <= (sizeof(gameSeed)/sizeof(int))-1) {
       rightSide(gameSeed[rightSeedNum]);
     }
     // send every third digit plus two to Accelerometer function
-    if(accelSeedNum <= 30) {
+    if(accelSeedNum <= (sizeof(gameSeed)/sizeof(int))) {
       Accel(gameSeed[accelSeedNum]);
-    }
-    // if all functions have reached the end of their seeds, run gameEnd function.
-    if(leftSeedNum > 28 && rightSeedNum > 29 && accelSeedNum > 30) {
-      noTone(speakerPin);
-      gameEnd();
     }
     beatTimer.repeat();
   }
+  // if left button is pressed within grace period, player scores one point, otherwise it was missed.
   if((leftGrace.isExpired() == false) && (leftEnded == true)) {
     if((leftCorrect == false) && LBFlag) {
       CircuitPlayground.setPixelColor(4, 0, 255, 0);
@@ -439,6 +469,7 @@ void game() {
     }
     
   }
+  // if right button is pressed within grace period, player scores one point, otherwise it was missed.
   if((rightGrace.isExpired() == false) && (rightEnded == true)) {
     if((rightCorrect == false) && RBFlag) {
       CircuitPlayground.setPixelColor(5, 0, 255, 0);
@@ -458,6 +489,7 @@ void game() {
     }
     
   }
+  // if board was shook within grace period, player scores one point, otherwise it was missed.
   if((accelGrace.isExpired() == false) && (accelEnded == true)) {
     if((accelCorrect == false) && accelFlag) {
       Serial.println("accel Score!");
@@ -474,6 +506,12 @@ void game() {
       Serial.println("accel Miss!");
     }
     
+  }
+
+  // if all functions have reached the end of their seeds, run gameEnd function.
+  if(leftSeedNum > (sizeof(gameSeed)/sizeof(int))-2 && rightSeedNum > (sizeof(gameSeed)/sizeof(int))-1 && accelSeedNum > (sizeof(gameSeed)/sizeof(int))) {
+    noTone(speakerPin);
+    gameEnd();
   }
 
   // if switch is flipped, kill game and go back to main menu
@@ -678,7 +716,14 @@ void Accel(int digit) {
 
 void gameEnd() {
   // print score to serial monitor
+  Serial.println("Score: ");
   Serial.println(gameScore);
+  Serial.println("Seed: ");
+  for(int i : gameSeed) {
+    Serial.print(i);
+  }
+  Serial.println();
+  userSeed = false;
 
   //map score to a percentage
   Correct = map(gameScore, 0, 30, 0, 9);
