@@ -18,12 +18,18 @@ float beatLength;
 
 int leftIndex = 0;
 int leftSeedNum = 0;
+bool leftCorrect = false;
+bool leftEnded = false;
 
 int rightIndex = 0;
 int rightSeedNum = 1;
+bool rightCorrect = false;
+bool rightEnded = false;
 
 int accelIndex = 0;
 int accelSeedNum = 2;
+bool accelCorrect = false;
+bool accelEnded = false;
 
 bool speechFlag = false;
 
@@ -46,13 +52,14 @@ bool speechFlag = false;
 const uint8_t spTHREE[]         PROGMEM = {0x0C,0xE8,0x2E,0x94,0x01,0x4D,0xBA,0x4A,0x40,0x03,0x16,0x68,0x69,0x36,0x1C,0xE9,0xBA,0xB8,0xE5,0x39,0x70,0x72,0x84,0xDB,0x51,0xA4,0xA8,0x4E,0xA3,0xC9,0x77,0xB1,0xCA,0xD6,0x52,0xA8,0x71,0xED,0x2A,0x7B,0x4B,0xA6,0xE0,0x37,0xB7,0x5A,0xDD,0x48,0x8E,0x94,0xF1,0x64,0xCE,0x6D,0x19,0x55,0x91,0xBC,0x6E,0xD7,0xAD,0x1E,0xF5,0xAA,0x77,0x7A,0xC6,0x70,0x22,0xCD,0xC7,0xF9,0x89,0xCF,0xFF,0x03};
 const uint8_t spTWO[]           PROGMEM = {0x06,0xB8,0x59,0x34,0x00,0x27,0xD6,0x38,0x60,0x58,0xD3,0x91,0x55,0x2D,0xAA,0x65,0x9D,0x4F,0xD1,0xB8,0x39,0x17,0x67,0xBF,0xC5,0xAE,0x5A,0x1D,0xB5,0x7A,0x06,0xF6,0xA9,0x7D,0x9D,0xD2,0x6C,0x55,0xA5,0x26,0x75,0xC9,0x9B,0xDF,0xFC,0x6E,0x0E,0x63,0x3A,0x34,0x70,0xAF,0x3E,0xFF,0x1F};
 const uint8_t spONE[]           PROGMEM = {0x66,0x4E,0xA8,0x7A,0x8D,0xED,0xC4,0xB5,0xCD,0x89,0xD4,0xBC,0xA2,0xDB,0xD1,0x27,0xBE,0x33,0x4C,0xD9,0x4F,0x9B,0x4D,0x57,0x8A,0x76,0xBE,0xF5,0xA9,0xAA,0x2E,0x4F,0xD5,0xCD,0xB7,0xD9,0x43,0x5B,0x87,0x13,0x4C,0x0D,0xA7,0x75,0xAB,0x7B,0x3E,0xE3,0x19,0x6F,0x7F,0xA7,0xA7,0xF9,0xD0,0x30,0x5B,0x1D,0x9E,0x9A,0x34,0x44,0xBC,0xB6,0x7D,0xFE,0x1F};
+
 //from:
 ///////////////////////////////////////////////////////////////////////////////
 // Circuit Playground Shake Detect
 // link: (https://learn.adafruit.com/circuit-playground-d6-dice/shake-detect) 
 // Author: Carter Nelson
 // MIT License (https://opensource.org/licenses/MIT)
-const int shakeThreshold = 15;
+const int shakeThreshold = 10;
 float X;
 float Y;
 float Z;
@@ -61,6 +68,10 @@ float totalAccel;
 
 AsyncDelay toneTimer;
 AsyncDelay beatTimer;
+
+AsyncDelay leftGrace;
+AsyncDelay rightGrace;
+AsyncDelay accelGrace;
 
 int Colors[10] = {25, 50, 75, 100, 125, 150, 175, 200, 225, 250};
 
@@ -310,19 +321,31 @@ void initialization() {
   switch(gameDifficulty) {
     case 1:
       beatTimer.start(600, AsyncDelay::MILLIS);
-      beatLength = 600;
+      // start grace timers to set their length
+      leftGrace.start((600/2), AsyncDelay::MILLIS);
+      rightGrace.start((600/2), AsyncDelay::MILLIS);
+      accelGrace.start((600/2), AsyncDelay::MILLIS);
       break;
     case 2:
       beatTimer.start(468.75, AsyncDelay::MILLIS);
-      beatLength = 468.75;
+      // start grace timers to set their length
+      leftGrace.start((468.75/2), AsyncDelay::MILLIS);
+      rightGrace.start((468.75/2), AsyncDelay::MILLIS);
+      accelGrace.start((468.75/2), AsyncDelay::MILLIS);
       break;
     case 3:
       beatTimer.start(400, AsyncDelay::MILLIS);
-      beatLength = 400;
+      // start grace timers to set their length
+      leftGrace.start((400/2), AsyncDelay::MILLIS);
+      rightGrace.start((400/2), AsyncDelay::MILLIS);
+      accelGrace.start((400/2), AsyncDelay::MILLIS);
       break;
     default:
       beatTimer.start(600, AsyncDelay::MILLIS);
-      beatLength = 600;
+      // start grace timers to set their length
+      leftGrace.start((600/2), AsyncDelay::MILLIS);
+      rightGrace.start((600/2), AsyncDelay::MILLIS);
+      accelGrace.start((600/2), AsyncDelay::MILLIS);
       break;
   }
 
@@ -333,9 +356,18 @@ void initialization() {
   rightSeedNum = 1;
   accelIndex = 0;
   accelSeedNum = 2;
-
-
   gameScore = 0;
+  leftCorrect = false;
+  rightCorrect = false;
+  accelCorrect = false;
+  leftEnded = false;
+  rightEnded = false;
+  accelEnded = false;
+
+  // expire timers so they don't interfere with start of game
+  leftGrace.expire();
+  rightGrace.expire();
+  accelGrace.expire();
 
   // set game state to 3 to start game
   gameState = 3;
@@ -388,6 +420,61 @@ void game() {
     }
     beatTimer.repeat();
   }
+  if((leftGrace.isExpired() == false) && (leftEnded == true)) {
+    if((leftCorrect == false) && LBFlag) {
+      CircuitPlayground.setPixelColor(4, 0, 255, 0);
+      Serial.println("Left Score!");
+      LBFlag = false;
+      gameScore += 1;
+      makeSound(1760, 250);
+      leftCorrect = true;
+    }
+  }
+  else if(leftGrace.isExpired() && leftEnded == true) {
+    //Serial.println("Grace Ended");
+    leftEnded = false;
+    if(leftCorrect == false) {
+      Serial.println("Left Miss!");
+      CircuitPlayground.setPixelColor(4, 255, 0, 0);
+    }
+    
+  }
+  if((rightGrace.isExpired() == false) && (rightEnded == true)) {
+    if((rightCorrect == false) && RBFlag) {
+      CircuitPlayground.setPixelColor(5, 0, 255, 0);
+      Serial.println("right Score!");
+      LBFlag = false;
+      gameScore += 1;
+      makeSound(1760, 250);
+      rightCorrect = true;
+    }
+  }
+  else if(rightGrace.isExpired() && rightEnded == true) {
+    //Serial.println("Grace Ended");
+    rightEnded = false;
+    if(rightCorrect == false) {
+      Serial.println("right Miss!");
+      CircuitPlayground.setPixelColor(5, 255, 0, 0);
+    }
+    
+  }
+  if((accelGrace.isExpired() == false) && (accelEnded == true)) {
+    if((accelCorrect == false) && accelFlag) {
+      Serial.println("accel Score!");
+      LBFlag = false;
+      gameScore += 1;
+      makeSound(1760, 250);
+      accelCorrect = true;
+    }
+  }
+  else if(accelGrace.isExpired() && accelEnded == true) {
+    //Serial.println("Grace Ended");
+    accelEnded = false;
+    if(accelCorrect == false) {
+      Serial.println("accel Miss!");
+    }
+    
+  }
 
   // if switch is flipped, kill game and go back to main menu
   if(switchFlag != switchState) {
@@ -400,14 +487,26 @@ void game() {
   if(toneTimer.isExpired()) {
     noTone(speakerPin);
   }
+  totalAccel = sqrt(X*X + Y*Y + Z*Z);
   // if board has been shaken then set accel flag to true
   if(totalAccel > shakeThreshold) {
     accelFlag = true;
+    Serial.println("shake");
   }
 
 }
 
 void leftSide(int digit) {
+  // First time function runs for each digit, set left button flag to false and turn off bottom led
+  if(leftIndex == 0) {
+    if (LBFlag) {
+    LBFlag = false;
+    }
+    else {
+      CircuitPlayground.setPixelColor(4, 0, 0, 0);
+    }
+    leftCorrect = false;
+  }
   // lights up an led on the top of the left side and waits for an amount of beats decided by the digit of the seed it was passed.
   // After it waits it will move down the left side until it reaches the bottom where it will set the index to zero and move on to next digit in the seed.
   if(leftIndex < digit) {
@@ -433,11 +532,15 @@ void leftSide(int digit) {
     CircuitPlayground.setPixelColor(3, 0, 0, 0);
     CircuitPlayground.setPixelColor(4, CircuitPlayground.colorWheel(Colors[gameColor]));
     leftIndex += 1;
+    leftGrace.restart();
+    //Serial.println("Grace Started");
+    leftEnded = true;
   }
   else if(leftIndex == (digit+4)) {
     leftIndex = 0;
     CircuitPlayground.setPixelColor(4, 0, 0, 0);
     leftSeedNum += 3;
+    
   }
   // if left button was pressed when led reaches the bottom then increase score by one, make bottom led green, and play high pitched sound.
   if(LBFlag && ((leftIndex ==(digit+4)))) {
@@ -446,25 +549,27 @@ void leftSide(int digit) {
     LBFlag = false;
     gameScore += 1;
     makeSound(1760, 250);
+    leftCorrect = true;
   }
   else if(LBFlag) {
-    CircuitPlayground.setPixelColor(4, 255, 0, 0);
     LBFlag = false;
   }
-  // First time function runs for each digit, set left button flag to false and turn off bottom led
-  if(leftIndex == 0) {
-    if (LBFlag) {
-    LBFlag = false;
-    }
-    else {
-      CircuitPlayground.setPixelColor(4, 0, 0, 0);
-    }
-  }
+  
   
   
 }
 
 void rightSide(int digit) {
+  // First time function runs for each digit, set right button flag to false and turn off bottom led
+  if(rightIndex == 0) {
+    if (RBFlag) {
+    RBFlag = false;
+    }
+    else {
+      CircuitPlayground.setPixelColor(5, 0, 0, 0);
+    }
+    rightCorrect = false;
+  }
   // lights up an led on the top of the right side and waits for an amount of beats decided by the digit of the seed it was passed.
   // After it waits it will move down the right side until it reaches the bottom where it will set the index to zero and move on to next digit in the seed.
   if(rightIndex < digit) {
@@ -490,6 +595,9 @@ void rightSide(int digit) {
     CircuitPlayground.setPixelColor(6, 0, 0, 0);
     CircuitPlayground.setPixelColor(5, CircuitPlayground.colorWheel(Colors[gameColor]));
     rightIndex += 1;
+    rightGrace.restart();
+    //Serial.println("Grace Started");
+    rightEnded = true;
   }
   else if(rightIndex == (digit+4)) {
     rightIndex = 0;
@@ -503,26 +611,24 @@ void rightSide(int digit) {
     gameScore += 1;
     makeSound(1760, 250);
     RBFlag = false;
+    rightCorrect = true;
   }
   else if(RBFlag) {
-    CircuitPlayground.setPixelColor(5, 255, 0, 0);
     RBFlag = false;
   }
-  // First time function runs for each digit, set right button flag to false and turn off bottom led
-  if(rightIndex == 0) {
-    if (RBFlag) {
-    RBFlag = false;
-    }
-    else {
-      CircuitPlayground.setPixelColor(5, 0, 0, 0);
-    }
-  }
+  
   
   
 }
 
 void Accel(int digit) {
-  totalAccel = sqrt(X*X + Y*Y + Z*Z);
+  if(accelIndex == 0) {
+    if(accelFlag) {
+      accelFlag = false;
+    }
+    accelCorrect = false;
+  }
+  
   // waits for an amount of beats decided by the digit of the seed it was passed.
   // after it waits it counts down from three using speaker
   if(accelIndex < digit) {
@@ -546,6 +652,9 @@ void Accel(int digit) {
     CircuitPlayground.speaker.say(spONE);
     speechFlag = false;
     accelIndex += 1;
+    accelGrace.restart();
+    //Serial.println("Grace Started");
+    accelEnded = true;
   }
   else if(accelIndex == (digit+4)) {
     
@@ -557,12 +666,12 @@ void Accel(int digit) {
     Serial.println("accel Score!");
     gameScore += 1;
     makeSound(1760, 250);
+    accelCorrect = true;
   }
   else if(accelFlag) {
+    accelFlag = false;
   }
-  if(accelIndex == 0) {
-
-  }
+  
   
   
 }
