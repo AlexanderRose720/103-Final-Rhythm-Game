@@ -17,6 +17,8 @@ volume (right button).<br>
 <br>
 The switch will always act as a return until you get to the main menu where it will change the difficulty.<br>
 <br>
+Seeds can be input manually into the serial monitor in the main menu. (notice: seeds must be of length 30 or less) <br>
+<br>
 **Inputs:** <br>
 Buttons which just use true or false <br>
 Accelerometer which read -8 to 8 g's. in the code it just reads as true over a certain threshold. <br>

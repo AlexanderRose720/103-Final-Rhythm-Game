@@ -529,7 +529,7 @@ void game() {
   // if board has been shaken then set accel flag to true
   if(totalAccel > shakeThreshold) {
     accelFlag = true;
-    Serial.println("shake");
+    //Serial.println("shake");
   }
 
 }
